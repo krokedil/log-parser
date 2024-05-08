@@ -1,0 +1,14 @@
+{
+    "name": "krokedil/log-parser",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Krokedil AB",
+            "email": "info@krokedil.se"
+        }
+    ],
+    "require": {},
+    "scripts": {
+        "parse": "php -f index.php"
+    }
+}
