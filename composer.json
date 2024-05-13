@@ -7,8 +7,25 @@
             "email": "info@krokedil.se"
         }
     ],
-    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Krokedil\\LogParser\\": "src/"
+        }
+    },
     "scripts": {
-        "parse": "php -f index.php"
+        "parse": "@php -f index.php parse",
+        "cs-check": "@php ./vendor/bin/phpcs --standard=phpcs.xml src/",
+        "cs-fix": "@php ./vendor/bin/phpcbf --standard=phpcs.xml src/"
+    },
+    "require-dev": {
+        "wp-coding-standards/wpcs": "^3.1"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "require": {
+        "ulrichsg/getopt-php": "^4.0"
     }
 }
