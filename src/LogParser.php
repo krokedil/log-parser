@@ -102,7 +102,6 @@ class LogParser {
 			if ( count( $result ) > 1000 ) {
 				// Maybe sort the results by date and time before writing them to the file.
 				$this->sort_results( $result );
-
 				$this->verbose( "Writing results to file: {$this->output_file}.{$fileNr}" );
 				$this->write_results( "{$this->output_file}.{$fileNr}", $result );
 				$result = array();
@@ -114,7 +113,6 @@ class LogParser {
 		if ( ! empty( $result ) ) {
 			// Maybe sort the results by date and time before writing them to the file.
 			$this->sort_results( $result );
-
 			$this->verbose( "Writing results to file: {$this->output_file}.{$fileNr}" );
 			$filename = $fileNr > 0 ? "{$this->output_file}.{$fileNr}" : $this->output_file;
 			$this->write_results( $filename, $result );
@@ -138,10 +136,19 @@ class LogParser {
 				preg_match( $pattern, $a, $matches_a );
 				preg_match( $pattern, $b, $matches_b );
 
-				$date_a = DateTime::createFromFormat( 'm-d-Y @ H:i:s', $matches_a[0] )
-					?: DateTime::createFromFormat( 'Y-m-d\TH:i:s', $matches_a[0] );
-				$date_b = DateTime::createFromFormat( 'm-d-Y @ H:i:s', $matches_b[0] )
-					?: DateTime::createFromFormat( 'Y-m-d\TH:i:s', $matches_b[0] );
+				// If we can't find a date, return 0.
+				if ( empty( $matches_a ) || empty( $matches_b ) ) {
+					return 0;
+				}
+
+				$date_a = DateTime::createFromFormat( 'm-d-Y @ H:i:s', $matches_a[0] ?? '' )
+					?: DateTime::createFromFormat( 'Y-m-d\TH:i:s', $matches_a[0] ?? '' );
+				$date_b = DateTime::createFromFormat( 'm-d-Y @ H:i:s', $matches_b[0] ?? '' )
+					?: DateTime::createFromFormat( 'Y-m-d\TH:i:s', $matches_b[0] ?? '' );
+
+				if ( ! $date_a || ! $date_b ) {
+					return 0;
+				}
 
 				return $date_a <=> $date_b;
 			}
