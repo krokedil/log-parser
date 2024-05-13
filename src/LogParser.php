@@ -133,13 +133,17 @@ class LogParser {
 		usort(
 			$result,
 			function ( $a, $b ) {
-				$rawTimeA = substr( $a, 0, 20 );
-				$rawTimeB = substr( $b, 0, 20 );
+				// Get either the old or new pattern of the datetime in the WooCommerce logs. Either 'm-d-Y @ H:i:s' or 'Y-m-dTH:i:s'.
+				$pattern = '/(\d{2}-\d{2}-\d{4} @ \d{2}:\d{2}:\d{2})|(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/';
+				preg_match( $pattern, $a, $matches_a );
+				preg_match( $pattern, $b, $matches_b );
 
-				$timeA = DateTime::createFromFormat( 'm-d-Y @ H:i:s', $rawTimeA );
-				$timeB = DateTime::createFromFormat( 'm-d-Y @ H:i:s', $rawTimeB );
+				$date_a = DateTime::createFromFormat( 'm-d-Y @ H:i:s', $matches_a[0] )
+					?: DateTime::createFromFormat( 'Y-m-d\TH:i:s', $matches_a[0] );
+				$date_b = DateTime::createFromFormat( 'm-d-Y @ H:i:s', $matches_b[0] )
+					?: DateTime::createFromFormat( 'Y-m-d\TH:i:s', $matches_b[0] );
 
-				return $timeA - $timeB;
+				return $date_a <=> $date_b;
 			}
 		);
 	}
