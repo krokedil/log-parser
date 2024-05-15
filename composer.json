@@ -1,6 +1,7 @@
 {
     "name": "krokedil/log-parser",
     "type": "project",
+    "version": "1.0.0",
     "authors": [
         {
             "name": "Krokedil AB",
