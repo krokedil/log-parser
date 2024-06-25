@@ -58,8 +58,8 @@ class LogParser {
 	 * @param bool   $verbose    Whether to output verbose information. Default false.
 	 */
 	public function __construct( $logs_path, $output_path, $terms, $inclusive = false, $verbose = false ) {
-		$this->logs_path   = trim( $logs_path, '/' ) . '/*.log';
-		$this->output_path = trim( $output_path, '/' );
+		$this->logs_path   = rtrim( $logs_path, '/' ) . '/*.log';
+		$this->output_path = rtrim( $output_path, '/' );
 		$this->terms       = $terms;
 		$this->inclusive   = $inclusive;
 		$this->verbose     = $verbose;
