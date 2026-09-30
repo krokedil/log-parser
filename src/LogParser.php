@@ -2,9 +2,11 @@
 namespace Krokedil\LogParser;
 
 use DateTime;
+use Krokedil\LogParser\Interfaces\LineMaskerInterface;
 use Krokedil\LogParser\Interfaces\LogDataProviderInterface;
 use Krokedil\LogParser\Interfaces\LogResultHandlerInterface;
 use Krokedil\LogParser\Interfaces\OutputLoggerInterface;
+use Krokedil\LogParser\Masking\WcLogLineMasker;
 
 class LogParser {
 
@@ -14,6 +16,7 @@ class LogParser {
     private array $terms;
     private bool $inclusive;
     private int $batch_size = 1000; // Configurable batch size for processing
+    private LineMaskerInterface $line_masker;
 
     /**
      * Constructor for LogParser.
@@ -24,6 +27,7 @@ class LogParser {
      * @param array $terms The terms to search for.
      * @param bool $inclusive Whether to search for all terms (true) or any term (false).
      * @param int $batch_size How many lines to collect before processing a batch.
+     * @param LineMaskerInterface|null $line_masker Masks each matched line. Defaults to masking with WcLogLineMasker.
      */
     public function __construct(
         LogDataProviderInterface $log_data_provider,
@@ -31,7 +35,8 @@ class LogParser {
         OutputLoggerInterface $output_logger,
         array $terms,
         bool $inclusive = false,
-        int $batch_size = 1000
+        int $batch_size = 1000,
+        ?LineMaskerInterface $line_masker = null
     ) {
         $this->log_data_provider = $log_data_provider;
         $this->result_handler    = $result_handler;
@@ -39,6 +44,7 @@ class LogParser {
         $this->terms             = $terms;
         $this->inclusive         = $inclusive;
         $this->batch_size        = $batch_size;
+        $this->line_masker       = $line_masker ?? new WcLogLineMasker();
 
         // Initial log messages
         $this->output_logger->log('LogParser initialized.');
@@ -78,8 +84,9 @@ class LogParser {
 
         foreach ($this->log_data_provider->get_log_lines() as $line_number => $line) {
             $found = $this->inclusive ? $this->contains_all_terms($line) : $this->contains_any_term($line);
+            // Match against the raw line, so a search for an email or a token still finds it.
             if ($found) {
-                $collected_lines[] = $line;
+                $collected_lines[] = $this->line_masker->mask($line);
             }
 
             if (count($collected_lines) >= $this->batch_size) {

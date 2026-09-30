@@ -46,6 +46,7 @@ The script has a few options that can be used to customize the search:
 - `-o | --output`: This option will change the output folder for the file. By default the `output` folder is set to the output folder in the root of the project.
 - `-v | --verbose`: This option will output the logs that are being searched and the logs that are being written to the output file.
 - `-i | --inclusive`: This option will make the search inclusive, meaning that the rows containing all the terms will be output to the file. This is useful if you want to search for multiple terms and only want to output the rows containing all the terms.
+- `--no-mask`: This option will output the matched rows without masking them. Only use it when the output never leaves your machine, see [Masking](#masking).
 - `-h | --help`: This option will output the help text with the options and how to use the script.
 
 ### Example with options:
@@ -71,6 +72,28 @@ composer parse "term1" "term2" "term3" -- -l "path/to/logs" -o "path/to/output"
 ```
 If you don't use these flags, the script will use the default folders for the logs and the output.
 
+### Masking
+Every matched row is masked before it is written to the output, so the output can be shared. The search still runs on the unmasked rows, so you can search for an email address or a token and get the row back with that value masked.
+
+Masking uses the same passes as the Krokedil plugins do before they log, from the [krokedil/wp-api](https://github.com/krokedil/wp-api) package:
+- `FieldMasker` with the field rules in `MaskingProfile`.
+- `KeyMasker`, which masks by key name. The package defaults cover credentials and tokens, and `MaskingProfile::KROKEDIL_KEYS` adds names, contact details, street addresses, identity numbers and hosted checkout URLs.
+
+On top of that, `WcLogLineMasker`:
+- Decodes JSON that was logged as a string, such as a request body, masks it and encodes it back.
+- Masks text that is not JSON: emails, IP addresses, `Basic` and `Bearer` values, JWTs, WooCommerce order keys, Klarna authorization tokens in URLs, `Key: value` header strings and sensitive `"key":"value"` pairs in invalid JSON.
+- Replaces an entry it cannot mask with `[MASKING FAILED]`. It never outputs the unmasked entry.
+
+Masking is best effort. Personal data in free text, such as a name in an order note, is not caught.
+
+`krokedil/wp-api` is a private repository. Composer needs access to it on GitHub, over SSH or with a GitHub token.
+
+### Tests
+```bash
+composer test
+```
+The fixtures in `tests/fixtures/logs` are real plugin logs with the personal data replaced, see the readme in that folder.
+
 ### Usage outside of CLI.
 This script is primarily built to be used in the CLI, but the class that parses the logs can also be used in any other PHP code if needed.
 To use the class in your own code, you can simply include the class and use it like this:
@@ -83,6 +106,8 @@ $terms = ['term1', 'term2', 'term3'];
 $logParser = new LogParser($logs_path, $output_path, $terms);
 $logParser->parse();
 ```
+
+To change how rows are masked, pass a `LineMaskerInterface` as the seventh argument, for example a `WcLogLineMasker` with your own `MaskingProfile`, or a `NullLineMasker` to turn masking off.
 
 The class also has two optional parameters that can be used to enable verbose output and inclusive search like this:
 ```php

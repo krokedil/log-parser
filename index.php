@@ -8,6 +8,7 @@ use GetOpt\Option;
 
 use Krokedil\LogParser\LogDataProviders\FileSystemLogDataProvider;
 use Krokedil\LogParser\LogParser;
+use Krokedil\LogParser\Masking\NullLineMasker;
 use Krokedil\LogParser\OutputLoggers\CliOutputLogger;
 use Krokedil\LogParser\ResultHandlers\FileResultHandler;
 
@@ -24,6 +25,7 @@ $getopt->addCommand(
 			Option::create( 'o', 'output', Getopt::REQUIRED_ARGUMENT )->setDescription( 'Output folder path' ),
 			Option::create( 'v', 'verbose', Getopt::NO_ARGUMENT )->setDescription( 'Verbose mode' ),
 			Option::create( 'i', 'inclusive', Getopt::NO_ARGUMENT )->setDescription( 'Inclusive mode, will only get lines that contain all the terms passed.' ),
+			Option::create( null, 'no-mask', Getopt::NO_ARGUMENT )->setDescription( 'Output the matched rows without masking personal data and credentials. Only for local use.' ),
 			Option::create( 'h', 'help', Getopt::NO_ARGUMENT )->setDescription( 'Show help text' ),
 		)
 	)
@@ -56,6 +58,7 @@ function parse( $flags, $terms ) {
 
 	$verbose   = isset( $flags['verbose'] );
 	$inclusive = isset( $flags['inclusive'] );
+	$no_mask   = isset( $flags['no-mask'] );
 
 	if ( $verbose ) {
 		echo "Verbose mode\n";
@@ -74,7 +77,9 @@ function parse( $flags, $terms ) {
         $resultHandler,
         $logger,
         $terms,
-        $inclusive
+        $inclusive,
+        1000,
+        $no_mask ? new NullLineMasker() : null
     );
 
     try {

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Matched rows are masked before they are output, so logs written before the plugins masked their own logs can be shared. Uses `FieldMasker` and `KeyMasker` from `krokedil/wp-api`.
+* Added `LineMaskerInterface`, `WcLogLineMasker`, `NullLineMasker` and `MaskingProfile`.
+* Added the optional `$line_masker` argument to `LogParser`. It defaults to `WcLogLineMasker`.
+* Added CLI option `--no-mask`.
+* Added PHPUnit tests, run with `composer test`.
+
 ------------------
 
 ## [1.0.0] - 2024-05-15
