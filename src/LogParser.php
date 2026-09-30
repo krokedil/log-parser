@@ -2,242 +2,211 @@
 namespace Krokedil\LogParser;
 
 use DateTime;
-use Exception;
+use Krokedil\LogParser\Interfaces\LineMaskerInterface;
+use Krokedil\LogParser\Interfaces\LogDataProviderInterface;
+use Krokedil\LogParser\Interfaces\LogResultHandlerInterface;
+use Krokedil\LogParser\Interfaces\OutputLoggerInterface;
+use Krokedil\LogParser\Masking\WcLogLineMasker;
 
 class LogParser {
 
-	/**
-	 * The path to the logs folder.
-	 *
-	 * @var string
-	 */
-	private $logs_path;
+    private LogDataProviderInterface $log_data_provider;
+    private LogResultHandlerInterface $result_handler;
+    private OutputLoggerInterface $output_logger;
+    private array $terms;
+    private bool $inclusive;
+    private int $batch_size = 1000; // Configurable batch size for processing
+    private LineMaskerInterface $line_masker;
 
-	/**
-	 * The path to the output folder.
-	 *
-	 * @var string
-	 */
-	private $output_path;
+    /**
+     * Constructor for LogParser.
+     *
+     * @param LogDataProviderInterface $log_data_provider Provider for log data.
+     * @param LogResultHandlerInterface $result_handler Handler for parsed results.
+     * @param OutputLoggerInterface $output_logger Logger for verbose output.
+     * @param array $terms The terms to search for. Empty to return every line.
+     * @param bool $inclusive Whether to search for all terms (true) or any term (false).
+     * @param int $batch_size How many lines to collect before processing a batch.
+     * @param LineMaskerInterface|null $line_masker Masks each matched line. Defaults to masking with WcLogLineMasker.
+     */
+    public function __construct(
+        LogDataProviderInterface $log_data_provider,
+        LogResultHandlerInterface $result_handler,
+        OutputLoggerInterface $output_logger,
+        array $terms,
+        bool $inclusive = false,
+        int $batch_size = 1000,
+        ?LineMaskerInterface $line_masker = null
+    ) {
+        $this->log_data_provider = $log_data_provider;
+        $this->result_handler    = $result_handler;
+        $this->output_logger     = $output_logger;
+        $this->terms             = $terms;
+        $this->inclusive         = $inclusive;
+        $this->batch_size        = $batch_size;
+        $this->line_masker       = $line_masker ?? new WcLogLineMasker();
 
-	/**
-	 * The terms to search for.
-	 *
-	 * @var array
-	 */
-	private $terms;
+        // Initial log messages
+        $this->output_logger->log('LogParser initialized.');
+        $this->output_logger->log('Searching for terms: ' . implode(', ', $this->terms));
+        $this->output_logger->log('Inclusive search: ' . ($this->inclusive ? 'yes' : 'no'));
+    }
 
-	/**
-	 * The output file.
-	 *
-	 * @var string
-	 */
-	private $output_file;
+    /**
+     * Generates a base filename stem using terms and current datetime.
+     * Example: results_term1_term2_2025-05-16_10-30-00
+     *
+     * @return string The base filename stem.
+     */
+    private function generate_base_filename_stem(): string {
+        $date_time    = date('Y-m-d_H-i-s');
+        $terms_string = implode('_', $this->terms);
+        $terms_string = preg_replace('/[^A-Za-z0-9_]/', '', $terms_string);
+        return "results_{$terms_string}_{$date_time}";
+    }
 
-	/**
-	 * Whether to search for all terms or any term.
-	 *
-	 * @var bool
-	 */
-	private $inclusive;
+    /**
+     * Parses logs using the configured provider and handler.
+     */
+    public function parse() {
+        $handler_config = [];
+        // If the handler might need a base filename (like FileResultHandler)
+        // We generate it here and pass it during initialization.
+        // Specific handlers can pick what they need from the config.
+        $handler_config['base_filename_stem'] = $this->generate_base_filename_stem();
 
-	/**
-	 * Whether to output verbose information.
-	 *
-	 * @var bool
-	 */
-	private $verbose;
+        $this->result_handler->initialize($handler_config);
+        $this->output_logger->log('Starting log parsing...');
 
-	/**
-	 * Parses the logs and gets all rows that contain either any or all of the terms.
-	 *
-	 * @param string $logs_path   The path to the logs folder.
-	 * @param string $output_path The path to the output folder.
-	 * @param array  $terms      The terms to search for.
-	 * @param bool   $inclusive  Whether to search for all terms or any term. Default false.
-	 * @param bool   $verbose    Whether to output verbose information. Default false.
-	 */
-	public function __construct( $logs_path, $output_path, $terms, $inclusive = false, $verbose = false ) {
-		$this->logs_path   = trim( $logs_path, '/' ) . '/*.log';
-		$this->output_path = trim( $output_path, '/' );
-		$this->terms       = $terms;
-		$this->inclusive   = $inclusive;
-		$this->verbose     = $verbose;
+        $collected_lines = [];
+        $batch_counter   = 0;
+        $total_lines_matched_and_batched = 0;
 
-		$date_time    = date( 'Y-m-d_H-i-s' );
-		$terms_string = implode( '_', $terms );
-		// Clear the output file name from any special characters.
-		$terms_string      = preg_replace( '/[^A-Za-z0-9_]/', '', $terms_string );
-		$this->output_file = "$this->output_path/results_{$terms_string}_{$date_time}";
+        foreach ($this->log_data_provider->get_log_lines() as $line_number => $line) {
+            // Without search terms, every line matches.
+            $found = empty($this->terms) || ($this->inclusive ? $this->contains_all_terms($line) : $this->contains_any_term($line));
+            // Match against the raw line, so a search for an email or a token still finds it.
+            if ($found) {
+                $collected_lines[] = $this->line_masker->mask($line);
+            }
 
-		$this->verbose( 'Searching for terms: ' . implode( ', ', $terms ) );
-		$this->verbose( 'Inclusive search: ' . ( $inclusive ? 'yes' : 'no' ) );
-		$this->verbose( "Output file: $this->output_file" );
-	}
+            if (count($collected_lines) >= $this->batch_size) {
+                $this->process_and_handle_batch($collected_lines, $batch_counter, false);
+                $total_lines_matched_and_batched += count($collected_lines);
+                $collected_lines = []; // Reset for the next batch
+                $batch_counter++;
+            }
+        }
 
-	/**
-	 * Find all rows from any .log file that contains any of the terms.
-	 *
-	 * @param array $terms The terms to search for.
-	 * @throws Exception If the directory cannot be opened.
-	 */
-	public function parse() {
-		$fileNr = 0;
-		$files  = glob( $this->logs_path );
-		$result = array();
+        // Process any remaining lines after the loop
+        if (!empty($collected_lines)) {
+            $this->process_and_handle_batch($collected_lines, $batch_counter, true, ($total_lines_matched_and_batched === 0));
+            $total_lines_matched_and_batched += count($collected_lines);
+        }
 
-		foreach ( $files as $file ) {
-			$handle = fopen( $file, 'r' );
-			if ( ! $handle ) {
-				continue;
-			}
+        if ($total_lines_matched_and_batched === 0) {
+            $this->output_logger->log('No results found matching the criteria.');
+        }
 
-			$lines = $this->get_lines( $handle );
+        $this->result_handler->finalize();
+        $this->output_logger->log('Log parsing finished.');
+    }
 
-			if ( ! empty( $lines ) ) {
-				$result = array_merge( $result, $lines );
-			}
+    /**
+     * Sorts, then sends a batch of lines to the result handler.
+     *
+     * @param array $lines The lines to process.
+     * @param int $batch_counter The current batch number.
+     * @param bool $is_final_batch_of_input True if this is the last batch from the input.
+     * @param bool|null $is_only_batch True if this is the only batch processed for the entire input.
+     */
+    private function process_and_handle_batch(array &$lines, int $batch_counter, bool $is_final_batch_of_input, ?bool $is_only_batch = null) {
+        if (empty($lines)) {
+            return;
+        }
 
-			// If we have more than 1000 results, print the results to the output file and clear the array.
-			if ( count( $result ) > 1000 ) {
-				// Maybe sort the results by date and time before writing them to the file.
-				$this->sort_results( $result );
-				$this->verbose( "Writing results to file: {$this->output_file}.{$fileNr}" );
-				$this->write_results( "{$this->output_file}.{$fileNr}", $result );
-				$result = array();
-				++$fileNr;
-			}
-		}
+        if ($is_only_batch === null) {
+            // Determine if it's the only batch if not explicitly passed.
+            // This happens if batch_counter is 0 AND it's the final batch from input.
+            $is_only_batch = $batch_counter === 0 && $is_final_batch_of_input;
+        }
 
-		// If we have any results left, print them to the output file.
-		if ( ! empty( $result ) ) {
-			// Maybe sort the results by date and time before writing them to the file.
-			$this->sort_results( $result );
-			$this->verbose( "Writing results to file: {$this->output_file}.{$fileNr}" );
-			$filename = $fileNr > 0 ? "{$this->output_file}.{$fileNr}" : $this->output_file;
-			$this->write_results( $filename, $result );
-		} else {
-			$this->verbose( 'No results found.' );
-		}
-	}
+        $this->output_logger->log("Preparing batch {$batch_counter} with " . count($lines) . " lines.");
+        $this->sort_results($lines);
 
-	/**
-	 * Sort the results by date and time before writing them to the file.
-	 * WooCommerce logs start with "m-d-Y @ H:i:s" and then the message.
-	 *
-	 * @param array $result The results to sort.
-	 */
-	protected function sort_results( &$result ) {
-		usort(
-			$result,
-			function ( $a, $b ) {
-				// Get either the old or new pattern of the datetime in the WooCommerce logs. Either 'm-d-Y @ H:i:s' or 'Y-m-dTH:i:s'.
-				$pattern = '/(\d{2}-\d{2}-\d{4} @ \d{2}:\d{2}:\d{2})|(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/';
-				preg_match( $pattern, $a, $matches_a );
-				preg_match( $pattern, $b, $matches_b );
+        $batch_context = [
+            'batch_id' => $batch_counter,
+            'is_final_input_batch' => $is_final_batch_of_input,
+            'is_only_batch' => $is_only_batch,
+            // base_filename_stem is already passed in initialize, but can be included if needed per batch
+        ];
 
-				// If we can't find a date, return 0.
-				if ( empty( $matches_a ) || empty( $matches_b ) ) {
-					return 0;
-				}
+        $this->result_handler->handle_sorted_batch($lines, $batch_context);
+    }
 
-				$date_a = DateTime::createFromFormat( 'm-d-Y @ H:i:s', $matches_a[0] ?? '' )
-					?: DateTime::createFromFormat( 'Y-m-d\TH:i:s', $matches_a[0] ?? '' );
-				$date_b = DateTime::createFromFormat( 'm-d-Y @ H:i:s', $matches_b[0] ?? '' )
-					?: DateTime::createFromFormat( 'Y-m-d\TH:i:s', $matches_b[0] ?? '' );
+    /**
+     * Sort the results by date and time.
+     * WooCommerce logs start with "m-d-Y @ H:i:s" or "Y-m-dTH:i:s".
+     *
+     * @param array &$result The results to sort.
+     */
+    protected function sort_results(array &$result): void {
+        usort(
+            $result,
+            function ($a, $b) {
+                $pattern = '/(\d{2}-\d{2}-\d{4} @ \d{2}:\d{2}:\d{2})|(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/';
+                preg_match($pattern, (string)$a, $matches_a);
+                preg_match($pattern, (string)$b, $matches_b);
 
-				if ( ! $date_a || ! $date_b ) {
-					return 0;
-				}
+                if (empty($matches_a[0]) || empty($matches_b[0])) {
+                    // If one or both lines don't have a recognizable timestamp, don't change their order relative to each other.
+                    // Lines without timestamps might sort inconsistently relative to lines with timestamps.
+                    return 0;
+                }
 
-				return $date_a <=> $date_b;
-			}
-		);
-	}
+                // Determine format and create DateTime objects
+                $date_a_str = $matches_a[0];
+                $date_b_str = $matches_b[0];
 
-	/**
-	 * Get all lines from a file handle that either contains any or all terms.
-	 *
-	 * @param resource $handle The file handle.
-	 * @return array
-	 */
-	protected function get_lines( $handle ) {
-		$lines = array();
-		while ( ( $line = fgets( $handle ) ) !== false ) {
-			$found = $this->inclusive ? $this->contains_all_terms( $line ) : $this->contains_any_term( $line );
-			if ( $found ) {
-				$lines[] = $line;
-			}
-		}
+                $date_a = DateTime::createFromFormat('m-d-Y @ H:i:s', $date_a_str) ?: DateTime::createFromFormat('Y-m-d\TH:i:s', $date_a_str);
+                $date_b = DateTime::createFromFormat('m-d-Y @ H:i:s', $date_b_str) ?: DateTime::createFromFormat('Y-m-d\TH:i:s', $date_b_str);
 
-		return $lines;
-	}
+                if (!$date_a || !$date_b) {
+                    return 0; // Should not happen if preg_match found something and formats are correct
+                }
 
-	/**
-	 * Check if a line contains any of the terms.
-	 *
-	 * @param string $line The line to check.
-	 * @return bool
-	 */
-	protected function contains_any_term( $line ) {
-		foreach ( $this->terms as $term ) {
-			if ( strpos( $line, $term ) !== false ) {
-				return true;
-			}
-		}
+                return $date_a <=> $date_b;
+            }
+        );
+    }
 
-		return false;
-	}
+    /**
+     * Check if a line contains any of the terms.
+     *
+     * @param string $line The line to check.
+     * @return bool
+     */
+    protected function contains_any_term(string $line): bool {
+        foreach ($this->terms as $term) {
+            if (strpos($line, $term) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-	/**
-	 * Check if a line contains all of the terms.
-	 *
-	 * @param string $line The line to check.
-	 * @return bool
-	 */
-	protected function contains_all_terms( $line ) {
-		foreach ( $this->terms as $term ) {
-			if ( strpos( $line, $term ) === false ) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Write the parsed lines to a file.
-	 *
-	 * @param string $file  The file to write to.
-	 * @param array  $lines The lines to write.
-	 * @throws Exception If the file cannot be opened.
-	 */
-	protected function write_results( $file, $lines ) {
-		// Ensure the output directory exists.
-		if ( ! is_dir( $this->output_path ) ) {
-			mkdir( $this->output_path, 0755, true );
-		}
-
-		$handle = fopen( $file . '.log', 'w' );
-		if ( ! $handle ) {
-			throw new Exception( "Could not open file: $file" );
-		}
-
-		foreach ( $lines as $line ) {
-			fwrite( $handle, $line );
-		}
-
-		fclose( $handle );
-	}
-
-	/**
-	 * Output verbose information.
-	 *
-	 * @param string $message The message to output.
-	 */
-	protected function verbose( $message ) {
-		if ( $this->verbose ) {
-			echo $message . "\n";
-		}
-	}
+    /**
+     * Check if a line contains all of the terms.
+     *
+     * @param string $line The line to check.
+     * @return bool
+     */
+    protected function contains_all_terms(string $line): bool {
+        foreach ($this->terms as $term) {
+            if (strpos($line, $term) === false) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

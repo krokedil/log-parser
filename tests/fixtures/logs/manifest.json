@@ -1,0 +1,153 @@
+{
+  "kustom-checkout/kco-order-flow.log": {
+    "plugin": "Kustom Checkout (formerly Klarna Checkout)",
+    "source_log": "kustom-checkout-for-woocommerce-2026-09-17-*.log",
+    "physical_lines": 31,
+    "entries": 31,
+    "levels": {
+      "NOTICE": 31
+    },
+    "message_formats": {
+      "json_object": 22,
+      "json_string": 9
+    },
+    "context": {
+      "legacy": 31
+    },
+    "first_timestamp": "2026-09-17T11:43:52+00:00",
+    "last_timestamp": "2026-09-17T11:45:07+00:00"
+  },
+  "qliro-one/order-flow.log": {
+    "plugin": "Qliro One",
+    "source_log": "qliro-one-checkout-for-woocommerce-2026-09-30-*.log",
+    "physical_lines": 14,
+    "entries": 14,
+    "levels": {
+      "NOTICE": 14
+    },
+    "message_formats": {
+      "json_object": 9,
+      "json_string": 5
+    },
+    "context": {
+      "legacy": 14
+    },
+    "first_timestamp": "2026-09-30T08:09:54+00:00",
+    "last_timestamp": "2026-09-30T08:13:05+00:00"
+  },
+  "swedbank-pay/order-flow.log": {
+    "plugin": "Swedbank Pay",
+    "source_log": "swedbank_pay-2026-09-29-*.log",
+    "physical_lines": 32,
+    "entries": 30,
+    "levels": {
+      "INFO": 10,
+      "DEBUG": 15,
+      "ERROR": 4,
+      "WARNING": 1
+    },
+    "message_formats": {
+      "json_object": 16,
+      "plain_text": 13,
+      "plain_text_multiline": 1
+    },
+    "context": {
+      "none": 3,
+      "json_object": 11,
+      "invalid_json": 9,
+      "json_array": 7
+    },
+    "first_timestamp": "2026-09-29T11:43:30+00:00",
+    "last_timestamp": "2026-09-29T12:04:04+00:00"
+  },
+  "dintero/order-flow.log": {
+    "plugin": "Dintero Checkout",
+    "source_log": "dintero-checkout-for-woocommerce-2026-08-04-*.log",
+    "physical_lines": 7,
+    "entries": 7,
+    "levels": {
+      "NOTICE": 7
+    },
+    "message_formats": {
+      "json_object": 5,
+      "json_string": 2
+    },
+    "context": {
+      "legacy": 7
+    },
+    "first_timestamp": "2026-08-04T08:09:35+00:00",
+    "last_timestamp": "2026-08-04T08:10:05+00:00"
+  },
+  "avarda/checkout-flow.log": {
+    "plugin": "Avarda Checkout",
+    "source_log": "avarda_checkout-2026-09-04-*.log",
+    "physical_lines": 22,
+    "entries": 22,
+    "levels": {
+      "DEBUG": 6,
+      "INFO": 16
+    },
+    "message_formats": {
+      "json_string": 9,
+      "json_object": 13
+    },
+    "context": {
+      "legacy": 22
+    },
+    "first_timestamp": "2026-09-04T15:05:36+00:00",
+    "last_timestamp": "2026-09-04T15:06:01+00:00"
+  },
+  "avarda/recurring-errors.log": {
+    "plugin": "Avarda Checkout",
+    "source_log": "avarda_checkout-2026-08-27-*.log",
+    "physical_lines": 4,
+    "entries": 4,
+    "levels": {
+      "INFO": 3,
+      "ERROR": 1
+    },
+    "message_formats": {
+      "json_object": 4
+    },
+    "context": {
+      "legacy": 4
+    },
+    "first_timestamp": "2026-08-27T08:49:42+00:00",
+    "last_timestamp": "2026-08-27T08:50:20+00:00"
+  },
+  "kroconnect/fraktjakt.log": {
+    "plugin": "Kroconnect.WooCommerce (Fraktjakt)",
+    "source_log": "kroconnect_fraktjakt-2026-09-30-*.log",
+    "physical_lines": 2,
+    "entries": 2,
+    "levels": {
+      "WARNING": 1,
+      "INFO": 1
+    },
+    "message_formats": {
+      "json_object": 2
+    },
+    "context": {
+      "none": 2
+    },
+    "first_timestamp": "2026-09-30T08:49:31+00:00",
+    "last_timestamp": "2026-09-30T08:49:32+00:00"
+  },
+  "kroconnect/nshift.log": {
+    "plugin": "Kroconnect.WooCommerce (nShift)",
+    "source_log": "kroconnect_nshift-2026-09-30-*.log",
+    "physical_lines": 3,
+    "entries": 3,
+    "levels": {
+      "INFO": 3
+    },
+    "message_formats": {
+      "json_object": 3
+    },
+    "context": {
+      "none": 3
+    },
+    "first_timestamp": "2026-09-30T08:41:12+00:00",
+    "last_timestamp": "2026-09-30T08:41:13+00:00"
+  }
+}

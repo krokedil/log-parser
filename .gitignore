@@ -2,3 +2,4 @@ logs/*.log
 output/*.log
 .phpcs-cache
 /vendor/
+.phpunit.result.cache

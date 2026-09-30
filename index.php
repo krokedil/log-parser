@@ -6,6 +6,12 @@ use GetOpt\Command;
 use GetOpt\Operand;
 use GetOpt\Option;
 
+use Krokedil\LogParser\LogDataProviders\FileSystemLogDataProvider;
+use Krokedil\LogParser\LogParser;
+use Krokedil\LogParser\Masking\NullLineMasker;
+use Krokedil\LogParser\OutputLoggers\CliOutputLogger;
+use Krokedil\LogParser\ResultHandlers\FileResultHandler;
+
 $termsOperand = Operand::create( 'terms', Operand::MULTIPLE );
 
 $getopt = new Getopt();
@@ -19,6 +25,7 @@ $getopt->addCommand(
 			Option::create( 'o', 'output', Getopt::REQUIRED_ARGUMENT )->setDescription( 'Output folder path' ),
 			Option::create( 'v', 'verbose', Getopt::NO_ARGUMENT )->setDescription( 'Verbose mode' ),
 			Option::create( 'i', 'inclusive', Getopt::NO_ARGUMENT )->setDescription( 'Inclusive mode, will only get lines that contain all the terms passed.' ),
+			Option::create( null, 'no-mask', Getopt::NO_ARGUMENT )->setDescription( 'Output the matched rows without masking personal data and credentials. Only for local use.' ),
 			Option::create( 'h', 'help', Getopt::NO_ARGUMENT )->setDescription( 'Show help text' ),
 		)
 	)
@@ -51,14 +58,34 @@ function parse( $flags, $terms ) {
 
 	$verbose   = isset( $flags['verbose'] );
 	$inclusive = isset( $flags['inclusive'] );
+	$no_mask   = isset( $flags['no-mask'] );
 
 	if ( $verbose ) {
 		echo "Verbose mode\n";
 	}
 
-	$logs_dir   = $flags['logs'] ?? __DIR__ . '/logs';
+	$logs_dir   = $flags['logs'] ?? __DIR__ . '/logs/*.log';
 	$output_dir = $flags['output'] ?? __DIR__ . '/output';
 
-	$log_parser = new \Krokedil\LogParser\LogParser( $logs_dir, $output_dir, $terms, $inclusive, $verbose );
-	$log_parser->parse();
+    $logger = new CliOutputLogger(); // For console output
+
+    $dataProvider = new FileSystemLogDataProvider($logs_dir, $logger);
+    $resultHandler = new FileResultHandler($output_dir, $logger);
+
+    $parser = new LogParser(
+        $dataProvider,
+        $resultHandler,
+        $logger,
+        $terms,
+        $inclusive,
+        1000,
+        $no_mask ? new NullLineMasker() : null
+    );
+
+    try {
+        $parser->parse();
+        $logger->log("CLI parsing complete. Result: " . $resultHandler->get_result());
+    } catch (Exception $e) {
+        $logger->log("An error occurred: " . $e->getMessage());
+    }
 }
