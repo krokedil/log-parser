@@ -21,6 +21,7 @@ class LogParser {
     private bool $inclusive;
     private int $batch_size = 1000; // Configurable batch size for processing
     private LineMaskerInterface $line_masker;
+    private bool $case_sensitive;
 
     /**
      * Constructor for LogParser.
@@ -32,6 +33,7 @@ class LogParser {
      * @param bool $inclusive Whether to search for all terms (true) or any term (false).
      * @param int $batch_size How many lines to collect before processing a batch.
      * @param LineMaskerInterface|null $line_masker Masks each matched line. Defaults to masking with WcLogLineMasker.
+     * @param bool $case_sensitive Whether the terms must match the case of the log.
      */
     public function __construct(
         LogDataProviderInterface $log_data_provider,
@@ -40,7 +42,8 @@ class LogParser {
         array $terms,
         bool $inclusive = false,
         int $batch_size = 1000,
-        ?LineMaskerInterface $line_masker = null
+        ?LineMaskerInterface $line_masker = null,
+        bool $case_sensitive = true
     ) {
         $this->log_data_provider = $log_data_provider;
         $this->result_handler    = $result_handler;
@@ -49,11 +52,13 @@ class LogParser {
         $this->inclusive         = $inclusive;
         $this->batch_size        = $batch_size;
         $this->line_masker       = $line_masker ?? new WcLogLineMasker();
+        $this->case_sensitive    = $case_sensitive;
 
         // Initial log messages
         $this->output_logger->log('LogParser initialized.');
         $this->output_logger->log('Searching for terms: ' . implode(', ', $this->terms));
         $this->output_logger->log('Inclusive search: ' . ($this->inclusive ? 'yes' : 'no'));
+        $this->output_logger->log('Case sensitive: ' . ($this->case_sensitive ? 'yes' : 'no'));
     }
 
     /**
@@ -218,7 +223,7 @@ class LogParser {
      */
     protected function contains_any_term(string $line): bool {
         foreach ($this->terms as $term) {
-            if (strpos($line, $term) !== false) {
+            if ($this->contains_term($line, $term)) {
                 return true;
             }
         }
@@ -233,10 +238,21 @@ class LogParser {
      */
     protected function contains_all_terms(string $line): bool {
         foreach ($this->terms as $term) {
-            if (strpos($line, $term) === false) {
+            if (!$this->contains_term($line, $term)) {
                 return false;
             }
         }
         return true;
+    }
+
+    /**
+     * Check if a line contains a term, matching case unless the search is case insensitive.
+     *
+     * @param string $line The line to check.
+     * @param string $term The term.
+     * @return bool
+     */
+    protected function contains_term(string $line, string $term): bool {
+        return ($this->case_sensitive ? strpos($line, $term) : mb_stripos($line, $term)) !== false;
     }
 }

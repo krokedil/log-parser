@@ -36,7 +36,7 @@ composer parse '\"code\":400'
 
 Keep in mind that the output file cant contain special characters in the name, so the filename will be sanitized to only contain letters and numbers to avoid this issue. The output file will be named based on the terms you searched for, so if you search for multiple terms, the filename will contain all the terms separated by a dash. For example if you search for "term1" and "term2", the output file will be named "term1-term2.log".
 
-You can search for any term you want, but remember that the search is case sensitive, so make sure to match the case of the term you are searching for.
+You can search for any term you want. The search is case sensitive, unless you pass `--case-insensitive`.
 Also if the term is too generic and you have too many logs, the output file can become very large or even cause the script to run out of memory.
 In that case, try to narrow down the search term to a more specific one.
 
@@ -46,6 +46,7 @@ The script has a few options that can be used to customize the search:
 - `-o | --output`: This option will change the output folder for the file. By default the `output` folder is set to the output folder in the root of the project.
 - `-v | --verbose`: This option will output the logs that are being searched and the logs that are being written to the output file.
 - `-i | --inclusive`: This option will make the search inclusive, meaning that the rows containing all the terms will be output to the file. This is useful if you want to search for multiple terms and only want to output the rows containing all the terms.
+- `-c | --case-insensitive`: This option will match the terms regardless of case.
 - `--no-mask`: This option will output the matched rows without masking them. Only use it when the output never leaves your machine, see [Masking](#masking).
 - `-h | --help`: This option will output the help text with the options and how to use the script.
 

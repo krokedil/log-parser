@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added `LineMaskerInterface`, `WcLogLineMasker`, `NullLineMasker` and `MaskingProfile`.
 * Added the optional `$line_masker` argument to `LogParser`. It defaults to `WcLogLineMasker`.
 * Added CLI option `--no-mask`.
+* Added case insensitive search: the `$case_sensitive` argument to `LogParser` and CLI option `--case-insensitive`.
 * Added PHPUnit tests, run with `composer test`.
 
 ### Changed
