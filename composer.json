@@ -20,7 +20,7 @@
         "test": "@php ./vendor/bin/phpunit"
     },
     "require-dev": {
-        "wp-coding-standards/wpcs": "^3.1",
+        "wp-coding-standards/wpcs": "^3.4.1",
         "phpunit/phpunit": "^9.6"
     },
     "config": {

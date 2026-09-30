@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * `LogParser` returns every line when no search terms are passed.
+* Updated the dev dependencies wpcs, phpcsutils and php_codesniffer past their security advisories.
 * `LogParser` matches, masks and returns whole log entries. The continuation lines of a multi-line entry are no longer lost.
 
 ------------------
