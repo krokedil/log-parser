@@ -34,8 +34,10 @@ Swedbank also writes **invalid JSON in CONTEXT**. Backslashes are stripped (`"Kr
 
 ## Known gaps (at the time these fixtures were added)
 
-- The log-parser-viewer UI regex in `src/js/app.js` requires ` CONTEXT: `, so it fails on every Kroconnect entry, on two Swedbank JSON entries and on Swedbank's IPN entry.
-- `LogParser` matches line by line, so a search returns only the first line of Swedbank's multi-line WARNING entry. The continuation lines and the CONTEXT line are lost.
+Both are fixed now: the UI parses entries with and without ` CONTEXT: `, and `LogParser` returns whole multi-line entries.
+
+- The UI regex in `src/js/app.js` required ` CONTEXT: `, so it failed on every Kroconnect entry, on two Swedbank JSON entries and on Swedbank's IPN entry.
+- `LogParser` matched line by line, so a search returned only the first line of Swedbank's multi-line WARNING entry.
 
 ## Redaction
 

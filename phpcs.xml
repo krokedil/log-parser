@@ -19,8 +19,13 @@
     <config name="minimum_supported_wp_version" value="6.2" />
     <config name="testVersion" value="7.3-" />
 
-    <!-- Use Wordpress Coding standards -->
-    <rule ref="WordPress" />
+    <!-- Use Wordpress Coding standards. This is a CLI library, not a WordPress plugin, so the sniffs for
+         WordPress functions (WP_Filesystem, escaping for HTML output, the WordPress date functions) do not apply. -->
+    <rule ref="WordPress">
+        <exclude name="WordPress.WP.AlternativeFunctions" />
+        <exclude name="WordPress.Security.EscapeOutput" />
+        <exclude name="WordPress.DateTime.RestrictedFunctions" />
+    </rule>
 
     <!--  Remove WordPress.Files.FileName.InvalidClassFileName checks to allow for PSR-4 naming convention -->
     <rule ref="WordPress.Files.FileName.InvalidClassFileName">

@@ -15,12 +15,12 @@
     },
     "scripts": {
         "parse": "@php -f index.php parse",
-        "cs-check": "@php ./vendor/bin/phpcs --standard=phpcs.xml src/",
-        "cs-fix": "@php ./vendor/bin/phpcbf --standard=phpcs.xml src/",
+        "cs-check": "@php ./vendor/bin/phpcs --standard=phpcs.xml src/ index.php",
+        "cs-fix": "@php ./vendor/bin/phpcbf --standard=phpcs.xml src/ index.php",
         "test": "@php ./vendor/bin/phpunit"
     },
     "require-dev": {
-        "wp-coding-standards/wpcs": "^3.1",
+        "wp-coding-standards/wpcs": "^3.4.1",
         "phpunit/phpunit": "^9.6"
     },
     "config": {

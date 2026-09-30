@@ -36,7 +36,7 @@ composer parse '\"code\":400'
 
 Keep in mind that the output file cant contain special characters in the name, so the filename will be sanitized to only contain letters and numbers to avoid this issue. The output file will be named based on the terms you searched for, so if you search for multiple terms, the filename will contain all the terms separated by a dash. For example if you search for "term1" and "term2", the output file will be named "term1-term2.log".
 
-You can search for any term you want, but remember that the search is case sensitive, so make sure to match the case of the term you are searching for.
+You can search for any term you want. The search is case sensitive, unless you pass `--case-insensitive`.
 Also if the term is too generic and you have too many logs, the output file can become very large or even cause the script to run out of memory.
 In that case, try to narrow down the search term to a more specific one.
 
@@ -46,6 +46,7 @@ The script has a few options that can be used to customize the search:
 - `-o | --output`: This option will change the output folder for the file. By default the `output` folder is set to the output folder in the root of the project.
 - `-v | --verbose`: This option will output the logs that are being searched and the logs that are being written to the output file.
 - `-i | --inclusive`: This option will make the search inclusive, meaning that the rows containing all the terms will be output to the file. This is useful if you want to search for multiple terms and only want to output the rows containing all the terms.
+- `-c | --case-insensitive`: This option will match the terms regardless of case.
 - `--no-mask`: This option will output the matched rows without masking them. Only use it when the output never leaves your machine, see [Masking](#masking).
 - `-h | --help`: This option will output the help text with the options and how to use the script.
 
@@ -86,8 +87,6 @@ On top of that, `WcLogLineMasker`:
 
 Masking is best effort. Personal data in free text, such as a name in an order note, is not caught.
 
-`krokedil/wp-api` is a private repository. Composer needs access to it on GitHub, over SSH or with a GitHub token.
-
 ### Tests
 ```bash
 composer test
@@ -95,24 +94,33 @@ composer test
 The fixtures in `tests/fixtures/logs` are real plugin logs with the personal data replaced, see the readme in that folder.
 
 ### Usage outside of CLI.
-This script is primarily built to be used in the CLI, but the class that parses the logs can also be used in any other PHP code if needed.
-To use the class in your own code, you can simply include the class and use it like this:
+The CLI is a thin wrapper around the `LogParser` class, which can also be used in any other PHP code. The parser takes three parts you can swap:
+- A data provider, where the lines come from: `FileSystemLogDataProvider` (files matching a glob pattern) or `StringLogDataProvider` (a string).
+- A result handler, where the matches go: `FileResultHandler` (a file in a folder) or `StringResultHandler` (a string you get with `get_result()`).
+- An output logger, for progress messages: `CliOutputLogger` or `NullOutputLogger`.
+
 ```php
+use Krokedil\LogParser\LogDataProviders\StringLogDataProvider;
 use Krokedil\LogParser\LogParser;
+use Krokedil\LogParser\OutputLoggers\NullOutputLogger;
+use Krokedil\LogParser\ResultHandlers\StringResultHandler;
 
-$logs_path = 'path/to/logs';
-$output_path = 'path/to/output';
-$terms = ['term1', 'term2', 'term3'];
-$logParser = new LogParser($logs_path, $output_path, $terms);
-$logParser->parse();
+$logger  = new NullOutputLogger();
+$handler = new StringResultHandler( $logger );
+
+$parser = new LogParser(
+	new StringLogDataProvider( $log_content ),
+	$handler,
+	$logger,
+	[ 'term1', 'term2' ] // The terms. Pass an empty array to return every entry.
+);
+$parser->parse();
+
+echo $handler->get_result();
 ```
 
-To change how rows are masked, pass a `LineMaskerInterface` as the seventh argument, for example a `WcLogLineMasker` with your own `MaskingProfile`, or a `NullLineMasker` to turn masking off.
-
-The class also has two optional parameters that can be used to enable verbose output and inclusive search like this:
-```php
-$inclusive = true;
-$verbose = true;
-$logParser = new LogParser( $logs_path, $output_path, $terms, $inclusive, $verbose );
-$logParser->parse();
-```
+The constructor also takes these optional arguments, in this order:
+- `$inclusive` (`false`): only return entries that contain all the terms.
+- `$batch_size` (`1000`): how many entries to collect before they are sorted and handed to the result handler.
+- `$line_masker` (`null`, which means `WcLogLineMasker`): how entries are masked. Pass a `WcLogLineMasker` with your own `MaskingProfile`, or a `NullLineMasker` to turn masking off.
+- `$case_sensitive` (`true`): whether the terms must match the case of the log.

@@ -13,11 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added `LineMaskerInterface`, `WcLogLineMasker`, `NullLineMasker` and `MaskingProfile`.
 * Added the optional `$line_masker` argument to `LogParser`. It defaults to `WcLogLineMasker`.
 * Added CLI option `--no-mask`.
+* Added case insensitive search: the `$case_sensitive` argument to `LogParser` and CLI option `--case-insensitive`.
 * Added PHPUnit tests, run with `composer test`.
 
 ### Changed
 
 * `LogParser` returns every line when no search terms are passed.
+* Updated the dev dependencies wpcs, phpcsutils and php_codesniffer past their security advisories.
+* `LogParser` matches, masks and returns whole log entries. The continuation lines of a multi-line entry are no longer lost.
 
 ------------------
 
