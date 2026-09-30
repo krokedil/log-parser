@@ -9,6 +9,10 @@ use Krokedil\LogParser\Interfaces\OutputLoggerInterface;
 use Krokedil\LogParser\Masking\WcLogLineMasker;
 
 class LogParser {
+    /**
+     * The timestamp a log entry starts with, in the current and the pre 8.6 WooCommerce format.
+     */
+    const ENTRY_START = '/^(?:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}|\d{2}-\d{2}-\d{4} @ \d{2}:\d{2}:\d{2})/';
 
     private LogDataProviderInterface $log_data_provider;
     private LogResultHandlerInterface $result_handler;
@@ -82,12 +86,12 @@ class LogParser {
         $batch_counter   = 0;
         $total_lines_matched_and_batched = 0;
 
-        foreach ($this->log_data_provider->get_log_lines() as $line_number => $line) {
-            // Without search terms, every line matches.
-            $found = empty($this->terms) || ($this->inclusive ? $this->contains_all_terms($line) : $this->contains_any_term($line));
-            // Match against the raw line, so a search for an email or a token still finds it.
+        foreach ($this->get_entries() as $entry) {
+            // Without search terms, every entry matches.
+            $found = empty($this->terms) || ($this->inclusive ? $this->contains_all_terms($entry) : $this->contains_any_term($entry));
+            // Match against the raw entry, so a search for an email or a token still finds it.
             if ($found) {
-                $collected_lines[] = $this->line_masker->mask($line);
+                $collected_lines[] = $this->line_masker->mask($entry);
             }
 
             if (count($collected_lines) >= $this->batch_size) {
@@ -110,6 +114,32 @@ class LogParser {
 
         $this->result_handler->finalize();
         $this->output_logger->log('Log parsing finished.');
+    }
+
+    /**
+     * Groups the provider's lines into log entries. A line that does not start with a timestamp
+     * continues the entry before it, like the message and CONTEXT lines of a multi-line entry.
+     *
+     * @return iterable<string> Each entry, ending with a newline.
+     */
+    private function get_entries(): iterable {
+        $entry = '';
+        foreach ($this->log_data_provider->get_log_lines() as $line) {
+            if ($entry !== '' && preg_match(self::ENTRY_START, $line)) {
+                yield $entry;
+                $entry = '';
+            }
+
+            // The last line of a file can lack its newline.
+            if ($entry !== '' && substr($entry, -1) !== "\n") {
+                $entry .= "\n";
+            }
+            $entry .= $line;
+        }
+
+        if ($entry !== '') {
+            yield substr($entry, -1) === "\n" ? $entry : $entry . "\n";
+        }
     }
 
     /**
