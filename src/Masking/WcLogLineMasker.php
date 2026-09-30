@@ -232,7 +232,7 @@ class WcLogLineMasker implements LineMaskerInterface {
 	 * @throws \RuntimeException If the value cannot be encoded.
 	 */
 	private function encode( $value ): string {
-		$json = json_encode( $value, self::JSON_FLAGS ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Not a WordPress context.
+		$json = json_encode( $value, self::JSON_FLAGS );
 		if ( false === $json ) {
 			throw new \RuntimeException( 'Could not encode the masked value.' );
 		}
