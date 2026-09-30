@@ -24,7 +24,7 @@ class LogParser {
      * @param LogDataProviderInterface $log_data_provider Provider for log data.
      * @param LogResultHandlerInterface $result_handler Handler for parsed results.
      * @param OutputLoggerInterface $output_logger Logger for verbose output.
-     * @param array $terms The terms to search for.
+     * @param array $terms The terms to search for. Empty to return every line.
      * @param bool $inclusive Whether to search for all terms (true) or any term (false).
      * @param int $batch_size How many lines to collect before processing a batch.
      * @param LineMaskerInterface|null $line_masker Masks each matched line. Defaults to masking with WcLogLineMasker.
@@ -83,7 +83,8 @@ class LogParser {
         $total_lines_matched_and_batched = 0;
 
         foreach ($this->log_data_provider->get_log_lines() as $line_number => $line) {
-            $found = $this->inclusive ? $this->contains_all_terms($line) : $this->contains_any_term($line);
+            // Without search terms, every line matches.
+            $found = empty($this->terms) || ($this->inclusive ? $this->contains_all_terms($line) : $this->contains_any_term($line));
             // Match against the raw line, so a search for an email or a token still finds it.
             if ($found) {
                 $collected_lines[] = $this->line_masker->mask($line);

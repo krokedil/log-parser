@@ -27,6 +27,12 @@ class LogParserTest extends TestCase {
 		$this->assertSame( '2026-09-17T11:44:44+00:00 NOTICE {"id":"order-1","email":"[REDACTED]"} CONTEXT: {"_legacy":true}' . "\n", $result );
 	}
 
+	public function test_returns_every_line_without_search_terms(): void {
+		$result = $this->parse( [], new NullLineMasker() );
+
+		$this->assertSame( self::LOG, $result );
+	}
+
 	public function test_returns_the_raw_line_with_the_null_masker(): void {
 		$result = $this->parse( [ 'order-2' ], new NullLineMasker() );
 

@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added CLI option `--no-mask`.
 * Added PHPUnit tests, run with `composer test`.
 
+### Changed
+
+* `LogParser` returns every line when no search terms are passed.
+
 ------------------
 
 ## [1.0.0] - 2024-05-15
