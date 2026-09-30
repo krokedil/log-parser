@@ -87,8 +87,6 @@ On top of that, `WcLogLineMasker`:
 
 Masking is best effort. Personal data in free text, such as a name in an order note, is not caught.
 
-`krokedil/wp-api` is a private repository. Composer needs access to it on GitHub, over SSH or with a GitHub token.
-
 ### Tests
 ```bash
 composer test

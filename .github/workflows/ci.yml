@@ -17,11 +17,8 @@ jobs:
           tools: composer:v2
           coverage: none
 
-      # krokedil/wp-api is private. WP_API_TOKEN is a GitHub token that can read it.
       - name: Install dependencies
         run: composer install --no-interaction --no-progress
-        env:
-          COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.WP_API_TOKEN }}"}}'
 
       - name: Tests
         run: composer test
