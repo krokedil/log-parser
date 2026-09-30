@@ -15,8 +15,8 @@
     },
     "scripts": {
         "parse": "@php -f index.php parse",
-        "cs-check": "@php ./vendor/bin/phpcs --standard=phpcs.xml src/",
-        "cs-fix": "@php ./vendor/bin/phpcbf --standard=phpcs.xml src/",
+        "cs-check": "@php ./vendor/bin/phpcs --standard=phpcs.xml src/ index.php",
+        "cs-fix": "@php ./vendor/bin/phpcbf --standard=phpcs.xml src/ index.php",
         "test": "@php ./vendor/bin/phpunit"
     },
     "require-dev": {
