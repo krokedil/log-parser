@@ -96,24 +96,33 @@ composer test
 The fixtures in `tests/fixtures/logs` are real plugin logs with the personal data replaced, see the readme in that folder.
 
 ### Usage outside of CLI.
-This script is primarily built to be used in the CLI, but the class that parses the logs can also be used in any other PHP code if needed.
-To use the class in your own code, you can simply include the class and use it like this:
+The CLI is a thin wrapper around the `LogParser` class, which can also be used in any other PHP code. The parser takes three parts you can swap:
+- A data provider, where the lines come from: `FileSystemLogDataProvider` (files matching a glob pattern) or `StringLogDataProvider` (a string).
+- A result handler, where the matches go: `FileResultHandler` (a file in a folder) or `StringResultHandler` (a string you get with `get_result()`).
+- An output logger, for progress messages: `CliOutputLogger` or `NullOutputLogger`.
+
 ```php
+use Krokedil\LogParser\LogDataProviders\StringLogDataProvider;
 use Krokedil\LogParser\LogParser;
+use Krokedil\LogParser\OutputLoggers\NullOutputLogger;
+use Krokedil\LogParser\ResultHandlers\StringResultHandler;
 
-$logs_path = 'path/to/logs';
-$output_path = 'path/to/output';
-$terms = ['term1', 'term2', 'term3'];
-$logParser = new LogParser($logs_path, $output_path, $terms);
-$logParser->parse();
+$logger  = new NullOutputLogger();
+$handler = new StringResultHandler( $logger );
+
+$parser = new LogParser(
+	new StringLogDataProvider( $log_content ),
+	$handler,
+	$logger,
+	[ 'term1', 'term2' ] // The terms. Pass an empty array to return every entry.
+);
+$parser->parse();
+
+echo $handler->get_result();
 ```
 
-To change how rows are masked, pass a `LineMaskerInterface` as the seventh argument, for example a `WcLogLineMasker` with your own `MaskingProfile`, or a `NullLineMasker` to turn masking off.
-
-The class also has two optional parameters that can be used to enable verbose output and inclusive search like this:
-```php
-$inclusive = true;
-$verbose = true;
-$logParser = new LogParser( $logs_path, $output_path, $terms, $inclusive, $verbose );
-$logParser->parse();
-```
+The constructor also takes these optional arguments, in this order:
+- `$inclusive` (`false`): only return entries that contain all the terms.
+- `$batch_size` (`1000`): how many entries to collect before they are sorted and handed to the result handler.
+- `$line_masker` (`null`, which means `WcLogLineMasker`): how entries are masked. Pass a `WcLogLineMasker` with your own `MaskingProfile`, or a `NullLineMasker` to turn masking off.
+- `$case_sensitive` (`true`): whether the terms must match the case of the log.
